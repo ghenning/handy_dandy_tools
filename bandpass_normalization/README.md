@@ -8,6 +8,8 @@ Example of new data
 
 ![](xamples/new.png)
 
+## Folded pulsar data
+
 Old data folded
 
 ![](xamples/orig_fold.png)
@@ -16,7 +18,6 @@ New data folded
 
 ![](xamples/new_fold.png)
 
-Obviously something is not right here...
 
 `TBD`
 
