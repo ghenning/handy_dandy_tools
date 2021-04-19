@@ -93,6 +93,7 @@ def read_write_scale(FIL,OUTFIL,NCHAN,TSAMP,START,END):
 			dataIn = grab_data(FIL,start_tmp,n_tmp,NCHAN,np.uint8)
 			seeker += len(dataIn.flatten())
 			dataIn, randmean = scaleit(dataIn,randmean)
+			dataIn = dataIn.T
 			with open(OUTFIL,'a') as F:
 				F.write(dataIn.flatten())
 			pbar.update(len(dataIn.flatten()))
