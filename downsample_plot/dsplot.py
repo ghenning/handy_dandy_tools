@@ -132,11 +132,12 @@ def onechan_fft(f,ds,nchan,start_counter,endsamp,nsamps,tsamp,outname,show,thech
 	n = outdat.size
 	the_fft = np.abs(sc.rfft(outdat))
 	the_fft /= n 
-	freq = sc.rfftfreq(n,d=1e-6/tsamp)
+	freq = sc.rfftfreq(n,d=tsamp)
+	#freq = sc.rfftfreq(n,d=1e-6/tsamp) # d is sample spacing!
 	fig,ax = plt.subplots()
 	ax.plot(freq,the_fft)
 	ax.set_title("{}, Channel {}".format(os.path.basename(f),thechan))
-	ax.set_xlabel("Mhz")
+	ax.set_xlabel("Hz")
 	ax.set_ylabel("Amp")
 	fig.tight_layout()
 	if show:
