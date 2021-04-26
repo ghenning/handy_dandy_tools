@@ -5,6 +5,7 @@ import struct
 #from tqdm import tqdm
 import argparse
 import sys
+import scipy.fftpack as sc
 
 def plot_downsamp(avgfac,samps,nchan,data):
 	avgsampuse = int(np.floor(samps/avgfac))
@@ -96,22 +97,60 @@ def ds_n_plot(f,ds,nchan,start_counter,endsamp,nsamps,tsamp,outname,show):
 	ax.set_title("{}".format(os.path.basename(f)))
 	fig.tight_layout()
 	if show:
+		plt.savefig(outname)
 		plt.show()
-	plt.savefig(outname)
+	else:
+		plt.savefig(outname)
 
-
-# unfortunately get rid of tqdm, maybe make a shitty progress bar instead
-# add options
-# 	input file
-#	downsampling factor 
-#	start, stop, all file
-#	here or in a separate script, FFT a single channel
-
-
-
+def onechan_fft(f,ds,nchan,start_counter,endsamp,nsamps,tsamp,outname,show,thechan):
+	# set counter and read-in block size
+	counter = start_counter 
+	blocksize=int(np.ceil(ds))
+	# initiate outplot array
+	totdown = nsamps/ds
+	outdat = np.zeros((1,nsamps))	
+	outdat = []
+	# set progres bar
+	bar_length = 30
+	# loop through data and FFT
+	#for i in range(np.shape(outdat)[1]):
+	for i in range(totdown):
+		start_tmp = counter
+		end_tmp = np.minimum(start_tmp + blocksize,endsamp)
+		n_tmp = end_tmp - start_tmp
+		dat = grab_data(f,start_tmp,n_tmp,nchan,np.uint8,True)
+		tmpdat = dat[thechan,:]
+		outdat = np.append(outdat,tmpdat,axis=0)
+		pc = 100.*i/totdown
+		sys.stdout.write('\r')
+		sys.stdout.write("Progress: [{:{}}] {:>3}%"
+					.format('='*int(pc/(100./bar_length)),
+					bar_length,int(pc)))
+		sys.stdout.flush()
+		counter += blocksize
+	outdat -= np.mean(outdat)
+	n = outdat.size
+	the_fft = np.abs(sc.rfft(outdat))
+	the_fft /= n 
+	freq = sc.rfftfreq(n,d=1e-6/tsamp)
+	fig,ax = plt.subplots()
+	ax.plot(freq,the_fft)
+	ax.set_title("{}, Channel {}".format(os.path.basename(f),thechan))
+	ax.set_xlabel("Mhz")
+	ax.set_ylabel("Amp")
+	fig.tight_layout()
+	if show:
+		plt.savefig(outname)
+		plt.show()
+	else:
+		plt.savefig(outname)
+	
 if __name__ == "__main__":
 	desc = """
-		downsample and plot filterbank
+		downsample and plot filterbank. By not inputting a --chan it will
+		plot a downsample plot of the filterbank.
+		If you use the --chan flag, it will
+		ignore the downsample plot and just give you the FFT plot.
 			"""
 	parser = argparse.ArgumentParser(description=desc)
 	parser.add_argument('--fil',type=str,help='filterbank file')
@@ -125,6 +164,7 @@ if __name__ == "__main__":
 			help="plot directory,default=current dir")
 	parser.add_argument('--show',action='store_true',default=False,
 			help="show plot")
+	parser.add_argument('--chan',type=int,help="Channel to FFT")
 	args = parser.parse_args()
 
 	# find start/end of plot
@@ -135,6 +175,8 @@ if __name__ == "__main__":
 	basename = os.path.splitext(os.path.basename(args.fil))[0]
 	outname_base = "{}_DS_{}.png".format(basename,args.downsamp)
 	outname = os.path.join(args.out,outname_base)
+	outname_base2 = "{}_FFT_chan_{}.png".format(basename,args.chan)
+	outname2 = os.path.join(args.out,outname_base2)
 	
 	# get file params
 	with open(args.fil,'r') as F:
@@ -157,7 +199,13 @@ if __name__ == "__main__":
 		endy = int(endy)
 	numsamps = endy - starty
 
-	ds_n_plot(args.fil,args.downsamp,nchan,starty,endy,numsamps,tsamp,outname,args.show)
+	
+	if args.chan is not None:
+		print "I want to make FFT"
+		onechan_fft(args.fil,args.downsamp,nchan,starty,endy,numsamps,tsamp,outname2,args.show,args.chan)
+	else:
+		print "I want to downsample"
+		ds_n_plot(args.fil,args.downsamp,nchan,starty,endy,numsamps,tsamp,outname,args.show)
 
 
 
